@@ -21,15 +21,17 @@ namespace PizzaApp2
         {
             TRI_AUCUN,
             TRI_PRIX,
-            TRI_NOM
+            TRI_NOM,
+            TRI_FAV
         }
         e_tri tri = e_tri.TRI_AUCUN;
 
         const string KEY_TRI = "tri";
+        const string KEY_FAV = "fav";
 
         // on créer notre fichier pour notre appareil
 
-       
+
         string jsonFileName = Path.Combine(Environment.GetFolderPath(SpecialFolder.LocalApplicationData), "pizzas.json");
 
 
@@ -37,11 +39,13 @@ namespace PizzaApp2
         {
             InitializeComponent();
 
-            pizzasFav.Add("4 fromages");
-            pizzasFav.Add("indienne");
-            pizzasFav.Add("tartiflette");
+            /*
+                pizzasFav.Add("4 fromages");
+                pizzasFav.Add("indienne");
+                pizzasFav.Add("tartiflette");
+            */
 
-            
+            LoadFavList();
 
             // ici on fait de la persistance
             if (Application.Current.Properties.ContainsKey(KEY_TRI))
@@ -174,6 +178,10 @@ namespace PizzaApp2
             }
             else if (tri == e_tri.TRI_PRIX)
             {
+                tri = e_tri.TRI_FAV;
+            }
+            else if (tri == e_tri.TRI_FAV)
+            {
                 tri = e_tri.TRI_AUCUN;
             }
             sortButton.Source = GetImageSourceFromTri(tri);
@@ -194,6 +202,8 @@ namespace PizzaApp2
                     return "sort_nom.png";
                 case e_tri.TRI_PRIX:
                     return "sort_prix.png";
+                case e_tri.TRI_FAV:
+                    return "sort_fav.png";
             }
             return "sort_none.png";
         }
@@ -210,6 +220,7 @@ namespace PizzaApp2
             switch (t)
             {
                 case e_tri.TRI_NOM:
+                case e_tri.TRI_FAV:
                     {
                         List<Pizza> ret = new List<Pizza>(l);
 
@@ -238,6 +249,22 @@ namespace PizzaApp2
             return l;
         }
 
+        // On créer une fonction pour notifier que les fav on changé
+        private void OnFavPizzaChanged(PizzaCell pizzaCell)
+        {
+            bool isInFavList = pizzasFav.Contains(pizzaCell.pizza.nom);
+            if (pizzaCell.isFavorite && !isInFavList)
+            {
+                pizzasFav.Add(pizzaCell.pizza.nom);
+                SaveFavList();
+            }
+            else if (!pizzaCell.isFavorite && isInFavList)
+            {
+                pizzasFav.Remove(pizzaCell.pizza.nom);
+                SaveFavList();
+            }
+        }
+
         // on créer une fonction pour une liste de pizza favori
         private List<PizzaCell> GetPizzaCells(List<Pizza> p, List<string> f)
         {
@@ -251,10 +278,40 @@ namespace PizzaApp2
             foreach(Pizza pizza in p)
             {
                 bool isFav = f.Contains(pizza.nom);
-                ret.Add(new PizzaCell { pizza = pizza, isFavorite = isFav});
+
+                if (tri == e_tri.TRI_FAV)
+                {
+                    if (isFav)
+                    {
+                        ret.Add(new PizzaCell { pizza = pizza, isFavorite = isFav, favChangedAction = OnFavPizzaChanged });
+                    }
+                }  
+                else
+                {
+                    ret.Add(new PizzaCell { pizza = pizza, isFavorite = isFav, favChangedAction = OnFavPizzaChanged });
+                }
+
+                
             }
 
             return ret;
+        }
+
+        private void SaveFavList()
+        {
+            string json = JsonConvert.SerializeObject(pizzasFav);
+            Application.Current.Properties[KEY_FAV] = json;
+            Application.Current.SavePropertiesAsync();
+        }
+
+
+        private void LoadFavList()
+        {
+            if (Application.Current.Properties.ContainsKey(KEY_FAV))
+            {
+                string json = Application.Current.Properties[KEY_FAV].ToString();
+                pizzasFav = JsonConvert.DeserializeObject<List<string>>(json);
+            }
         }
     }
 }

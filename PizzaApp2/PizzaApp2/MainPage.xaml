@@ -121,6 +121,7 @@
                                 <ImageButton 
                                         BackgroundColor="Transparent" 
                                         Source="{Binding ImageSourceFav}" 
+                                        Command="{Binding FavClickCommand}"
                                         WidthRequest="30"/>
 
                             </StackLayout>
